@@ -1,0 +1,57 @@
+-- Question.1 Using the table client master and product master answer the following questionnaires
+
+-- i. Change the selling price of ‘1.44 floppy drive’ to Rs.1150.00
+UPDATE product_master 
+SET sell_price = 1150.00 
+WHERE product_no = 'P0001';
+
+-- ii. Delete the record with client 0001 from the client master table
+DELETE FROM client_master 
+WHERE client_no = '0001';
+
+-- iii. Change the city of client_no ‘0005’ to Bombay
+UPDATE client_master 
+SET city = 'Bombay' 
+WHERE client_no = '0005';
+
+-- iv. Change the bal_due of client_no ‘0001' to 1000
+UPDATE client_master 
+SET bal_due = 1000 
+WHERE client_no = '0001';
+
+-- v. Find the products whose selling price is more than 1500 and also find the new selling price as original selling price * 15
+SELECT *, 
+       sell_price * 15 AS new_selling_price 
+FROM product_master 
+WHERE sell_price > 1500;
+
+-- vi. Find out the clients who stay in a city whose second letter is ‘a’
+SELECT * 
+FROM client_master 
+WHERE city LIKE '_a%';
+
+-- vii. Find out the name of all clients having ‘a’ as the second letter in their names
+SELECT * 
+FROM client_master 
+WHERE name LIKE '_a%';
+
+-- viii. List the products in sorted order of their description
+SELECT * 
+FROM product_master 
+ORDER BY description ASC;
+
+-- ix. Count the total number of orders
+SELECT SUM(reorder_lvl) AS total_order
+FROM Product_master
+
+-- x. Calculate the average price of all the products
+SELECT 
+    AVG(cost_price) AS avg_cost_price, 
+    AVG(sell_price) AS avg_sell_price 
+FROM product_master;
+
+-- xi. Calculate the minimum price of products
+SELECT 
+    MIN(cost_price) AS min_cost_price, 
+    MIN(sell_price) AS min_sell_price 
+FROM product_master;
