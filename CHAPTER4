@@ -1,0 +1,176 @@
+PROJECT4-1:
+--Suppose your company’s policy on password complexity requires that the password be 10 characters long, must contain digits, and does not contain more than three characters of your user name. 
+--Create an Oracle verify function to enforce this password complexity.
+
+CREATE OR REPLACE FUNCTION PASSWORD_VERIFY_FUNCTION(
+  2  username VARCHAR2,
+  3  password VARCHAR2,
+  4  old_password VARCHAR2)
+  5  RETURN BOOLEAN IS
+  6  invalid BOOLEAN :=FALSE;
+  7  BEGIN
+  8  --Ensure password is of length 10 char
+  9  IF LENGTH(password)<10 THEN
+ 10  RAISE_APPLICATION_ERROR(-20001,'Password must be at least 10 characters long.');
+ 11  END IF;
+ 12  IF NOT REGEXP_LIKE(password,'\d')THEN
+ 13  RAISE_APPLICATION_ERROR(-20002,'Password must contain atleast one digit');
+ 14  END IF;
+ 15  IF REGEXP_COUNT(password,SUBSTR(username,1,3))>0 THEN
+ 16  RAISE_APPLICATION_ERROR(-20003,'Password cannot contain more than three characters from the username');
+ 17  END IF;
+ 18  RETURN TRUE;
+ 19  END;
+ 20  /
+
+--PROJECT 4.2
+--John, your network administrator, needs to be able to assign new users to roles on the SQL server. 
+--Create an account that allows this security function and only this function.
+
+-- Create a new user account
+CREATE USER John IDENTIFIED BY admin_password;
+
+-- Grant privileges to the user for managing roles
+GRANT CREATE ROLE, ALTER ANY ROLE, GRANT ANY ROLE TO John;
+
+-- Grant other necessary privileges to administer user accounts
+GRANT CREATE USER, ALTER USER, DROP USER TO John;
+
+-- Grant CONNECT privilege to enable login
+GRANT CONNECT TO John;
+
+--Create the three user-defined roles that are shown in the following table and assign the specified permissions for the CUSTOMERS table:
+
+Role	           Select	Insert	Update	Delete
+account_managers	✔			✔                 ✔	
+customer_service	✔	             ✔		
+sales_reps	      ✔		 ✔	        ✔	
+
+
+
+CREATE TABLE CUSTOMERS (
+  2      customer_id NUMBER PRIMARY KEY,
+  3      customer_name VARCHAR2(100),
+  4      contact_number VARCHAR2(15),
+  5      address VARCHAR2(200)
+  6  );
+
+GRANT SELECT,UPDATE,DELETE ON CUSTOMERS TO account_managers;
+GRANT SELECT,UPDATE ON CUSTOMERS TO customer_service;
+GRANT SELECT,UPDATE,INSERT ON CUSTOMERS TO sales_reps;
+
+--Create and document a new login and user in the Northwind database. Give this user SELECT permissions to the EMPLOYEES table.
+CREATE TABLE EMPLOYEES(
+  2  employee_id NUMBER PRIMARY KEY,
+  3  first_name VARCHAR2(50),
+  4  last_name VARCHAR2(50),
+  5  email VARCHAR2(100),
+  6  hire_date DATE,
+  7  job_id VARCHAR(10));
+ INSERT INTO EMPLOYEES (employee_id, first_name, last_name, email, hire_date, job_id)
+  2  VALUES (102, 'Jane', 'Smith', 'jane.smith@example.com', TO_DATE('2022-06-15', 'YYYY-MM-DD'), 'IT02');
+CREATE USER northwind_user IDENTIFIED BY SecurePass123;
+--Grant session privilege
+GRANT CREATE SESSION TO northwind_user;
+GRANT SELECT ON EMPLOYEES TO northwind_user;
+/
+
+
+
+--PROJECT 4.5-
+--In Oracle Database, you can enforce a password policy that locks a user's account after 4 failed login attempts using the CREATE PROFILE statement.
+ CREATE OR REPLACE FUNCTION verify_password_length(
+  2  username VARCHAR2,
+  3  password VARCHAR2,
+  4  old_password VARCHAR2)RETURN BOOLEAN IS
+  5  BEGIN
+  6  --Check if password length is atleast 12 characters
+  7  IF LENGTH(password)<12 then
+  8  RAISE_APPLICATION_ERROR(-20001, 'Password must be at least 12 characters long.');
+  9  END IF;
+ 10  --IF MEETS THE CRITERIA
+ 11  RETURN TRUE;
+ 12  END;
+ 13  /
+--PROJECT 4.6
+--Create and document a password policy that locks the user’s account if the password is entered incorrectly four times in a row
+
+CREATE PROFILE secure_profile LIMIT 
+    FAILED_LOGIN_ATTEMPTS 4 
+    PASSWORD_LOCK_TIME 1 
+    PASSWORD_LIFE_TIME 90 
+    PASSWORD_REUSE_TIME 180;
+ALTER USER northwind_user PROFILE secure_profile;
+CREATE USER northwind_user IDENTIFIED BY StrongPassword123;
+GRANT CONNECT, RESOURCE TO northwind_user;
+ALTER USER northwind_user PROFILE secure_profile;
+SELECT username, account_status FROM dba_users WHERE username = 'NORTHWIND_USER';
+
+USERNAME        ACCOUNT_STATUS
+--------------  -----------------
+NORTHWIND_USER  LOCKED(TIMED)
+
+ALTER USER northwind_user ACCOUNT UNLOCK;
+ALTER PROFILE DEFAULT LIMIT FAILED_LOGIN_ATTEMPTS 4 PASSWORD_LOCK_TIME 1;
+ALTER PROFILE secure_profile LIMIT PASSWORD_LOCK_TIME UNLIMITED;
+SELECT username, account_status FROM dba_users;
+--OUTPUT
+USERNAME                       ACCOUNT_STATUS
+------------------------------ --------------------------------
+MGMT_VIEW                      OPEN
+SYS                            OPEN
+SYSTEM                         OPEN
+DBSNMP                         OPEN
+SYSMAN                         OPEN
+ADMIN_USER                     OPEN
+JOHN                           OPEN
+NORTHWIND_USER                 OPEN
+OUTLN                          EXPIRED & LOCKED
+FLOWS_FILES                    EXPIRED & LOCKED
+MDSYS                          EXPIRED & LOCKED
+
+USERNAME                       ACCOUNT_STATUS
+------------------------------ --------------------------------
+ORDSYS                         EXPIRED & LOCKED
+EXFSYS                         EXPIRED & LOCKED
+WMSYS                          EXPIRED & LOCKED
+APPQOSSYS                      EXPIRED & LOCKED
+APEX_030200                    EXPIRED & LOCKED
+OWBSYS_AUDIT                   EXPIRED & LOCKED
+ORDDATA                        EXPIRED & LOCKED
+CTXSYS                         EXPIRED & LOCKED
+ANONYMOUS                      EXPIRED & LOCKED
+XDB                            EXPIRED & LOCKED
+ORDPLUGINS                     EXPIRED & LOCKED
+
+USERNAME                       ACCOUNT_STATUS
+------------------------------ --------------------------------
+OWBSYS                         EXPIRED & LOCKED
+SI_INFORMTN_SCHEMA             EXPIRED & LOCKED
+OLAPSYS                        EXPIRED & LOCKED
+SCOTT                          EXPIRED & LOCKED
+ORACLE_OCM                     EXPIRED & LOCKED
+XS$NULL                        EXPIRED & LOCKED
+BI                             EXPIRED & LOCKED
+PM                             EXPIRED & LOCKED
+MDDATA                         EXPIRED & LOCKED
+IX                             EXPIRED & LOCKED
+SH                             EXPIRED & LOCKED
+
+USERNAME                       ACCOUNT_STATUS
+------------------------------ --------------------------------
+DIP                            EXPIRED & LOCKED
+OE                             EXPIRED & LOCKED
+APEX_PUBLIC_USER               EXPIRED & LOCKED
+HR                             EXPIRED & LOCKED
+SPATIAL_CSW_ADMIN_USR          EXPIRED & LOCKED
+SPATIAL_WFS_ADMIN_USR          EXPIRED & LOCKED
+
+39 rows selected.
+--PROJECT 4.7
+--Create and document a password policy that expires the password after 60 days.
+
+SQL> CREATE PROFILE password_expiry_profile LIMIT
+  2      PASSWORD_LIFE_TIME 60
+  3      PASSWORD_REUSE_TIME 365
+  4      PASSWORD_GRACE_TIME 7;
