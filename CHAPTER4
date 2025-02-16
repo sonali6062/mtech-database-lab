@@ -1,0 +1,29 @@
+--Hands-on Project 4-1
+--Suppose your company’s policy on password complexity requires that the password be 10 characters long, must contain digits, and does not contain more than three characters of your user name.
+--Create an Oracle verify function to enforce this password complexity.
+
+SQL> CREATE OR REPLACE FUNCTION password_verify_function (
+  2      username VARCHAR2,
+  3      password VARCHAR2,
+  4      old_password VARCHAR2)
+  5  RETURN BOOLEAN IS
+  6      invalid BOOLEAN := FALSE;
+  7  BEGIN
+  8      -- Check password length
+  9      IF LENGTH(password) < 10 THEN
+ 10          RAISE_APPLICATION_ERROR(-20001, 'Password must be at least 10 characters long.');
+ 11      END IF;
+ 12
+ 13      -- Check for at least one digit
+ 14      IF NOT REGEXP_LIKE(password, '\d') THEN
+ 15          RAISE_APPLICATION_ERROR(-20002, 'Password must contain at least one digit.');
+ 16      END IF;
+ 17
+ 18      -- Check if password contains more than three characters from username
+ 19      IF REGEXP_COUNT(password, SUBSTR(username, 1, 3)) > 0 THEN
+ 20          RAISE_APPLICATION_ERROR(-20003, 'Password cannot contain more than three consecutive characters from the username.');
+ 21      END IF;
+ 22
+ 23      RETURN TRUE;
+ 24  END;
+ 25  /
