@@ -1,3 +1,5 @@
+ed for editing commands. then improvise the code and save the click / to execute the command
+
 PROJECT4-1:
 --Suppose your company’s policy on password complexity requires that the password be 10 characters long, must contain digits, and does not contain more than three characters of your user name. 
 --Create an Oracle verify function to enforce this password complexity.
