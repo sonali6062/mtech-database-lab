@@ -1,0 +1,133 @@
+-- Check if Northwind database exists
+SELECT name FROM sys.databases WHERE name = 'Northwind';
+
+USE Northwind;
+GO
+-- Create the Customers table
+CREATE TABLE Customers (
+    CustomerID INT PRIMARY KEY,
+    CompanyName NVARCHAR(100) NOT NULL,
+    ContactName NVARCHAR(100),
+    ContactTitle NVARCHAR(50),
+    Address NVARCHAR(200),
+    City NVARCHAR(50),
+    Region NVARCHAR(50),
+    PostalCode NVARCHAR(20),
+    Country NVARCHAR(50),
+    Phone NVARCHAR(30),
+    Fax NVARCHAR(30)
+);
+-- Create the Orders table
+CREATE TABLE Orders (
+    OrderID INT PRIMARY KEY,
+    CustomerID INT,
+    EmployeeID INT,
+    OrderDate DATE,
+    RequiredDate DATE,
+    ShippedDate DATE,
+    ShipVia INT,
+    Freight DECIMAL(10, 2),
+    ShipName NVARCHAR(100),
+    ShipAddress NVARCHAR(200),
+    ShipCity NVARCHAR(50),
+    ShipRegion NVARCHAR(50),
+    ShipPostalCode NVARCHAR(20),
+    ShipCountry NVARCHAR(50),
+    CONSTRAINT FK_Customers FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
+);
+-- Create the OrderDetails table
+CREATE TABLE OrderDetails (
+    OrderID INT,
+    ProductID INT,
+    UnitPrice DECIMAL(10, 2),
+    Quantity INT,
+    Discount FLOAT,
+    PRIMARY KEY (OrderID, ProductID),
+    CONSTRAINT FK_Orders FOREIGN KEY (OrderID) REFERENCES Orders(OrderID)
+);
+
+
+-- Create the roles
+CREATE ROLE Sales;
+CREATE ROLE Sales_Manager;
+
+--grant permissions to sales role
+GRANT SELECT,UPDATE,INSERT ON Customers TO Sales;
+GRANT SELECT,UPDATE,INSERT ON Orders TO Sales;
+GRANT SELECT, UPDATE, INSERT ON [OrderDetails] TO Sales;
+GRANT SELECT, DELETE ON Orders TO Sales_Manager;
+GRANT SELECT, DELETE ON OrderDetails TO Sales_Manager;
+
+--PROJECT5.3
+--CREATE THE PROXY USER
+USE Northwind;
+GO
+
+-- Create a proxy user with a password
+CREATE LOGIN ProxyUser WITH PASSWORD = 'SecureP@ssw0rd';
+CREATE USER ProxyUser FOR LOGIN ProxyUser;
+
+--GRANT ROLES TO PROXY USERS
+-- Add ProxyUser to Sales role
+ALTER ROLE Sales ADD MEMBER ProxyUser;
+
+-- Add ProxyUser to Sales_Manager role
+ALTER ROLE Sales_Manager ADD MEMBER ProxyUser;
+
+--VERIFY ROLE ASSIGNMENTS
+-- Check roles assigned to ProxyUser
+SELECT r.name AS RoleName, m.name AS MemberName
+FROM sys.database_role_members rm
+JOIN sys.database_principals r ON rm.role_principal_id = r.principal_id
+JOIN sys.database_principals m ON rm.member_principal_id = m.principal_id
+WHERE m.name = 'ProxyUser';
+
+--TESTING ACCESS
+-- Impersonate ProxyUser to test permissions
+EXECUTE AS USER = 'ProxyUser';
+SELECT * FROM Customers; -- Should work if Sales role has SELECT permission
+REVERT; -- Return to your original user
+
+--PROJECT 5.4
+--using query analyser, write a small script that selects a set of customers using the user and roles you created in project 5.2 and 5.3
+-- Use the Northwind database
+USE Northwind;
+GO
+-- Impersonate ProxyUser to test role-based access
+EXECUTE AS USER = 'ProxyUser';
+GO
+
+-- Select a set of customers
+SELECT TOP 5 CustomerID, CompanyName, ContactName, Country
+FROM Customers;
+GO
+
+-- Revert back to the original user
+REVERT;
+GO
+
+--PROJECT5.5
+  USE PUBS;
+GO
+
+--CREATE USERS
+CREATE USER John WITHOUT LOGIN;
+CREATE USER JANE WITHOUT LOGIN;
+CREATE USER Sally WITHOUT LOGIN;
+GO
+
+-- Create the AUTHORS table
+CREATE TABLE AUTHORS (
+    AuthorID INT PRIMARY KEY, -- Auto-incremented ID
+    FirstName VARCHAR(50), -- Author's first name
+    LastName VARCHAR(50),  -- Author's last name
+    BirthDate DATE,          -- Author's date of birth
+    Nationality VARCHAR(50),-- Author's nationality
+    
+);
+
+
+--GRANT PERMISSIONS ON THE AUTHORS TABLE
+GRANT SELECT,UPDATE,INSERT ON AUTHORS TO John;
+GRANT SELECT,UPDATE,INSERT,DELETE ON AUTHORS TO Jane;
+GRANT SELECT ON AUTHORS TO Sally;
