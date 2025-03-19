@@ -1,1 +1,78 @@
+USE Pharmacy1;
+GO
+CREATE TABLE Medicine (
+    MedID INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Category VARCHAR(50),
+    Price DECIMAL(10,2),
+    UserRole VARCHAR(50)  -- Access control based on user role
+);
+-- Inserting sample data
+INSERT INTO Medicine VALUES (1, 'Paracetamol', 'Painkiller', 50.00, 'Admin');
+INSERT INTO Medicine VALUES (2, 'Amoxicillin', 'Antibiotic', 100.00, 'Doctor');
+INSERT INTO Medicine VALUES (3, 'Aspirin', 'Painkiller', 40.00, 'Pharmacist');
+-- Creating views for role-based security
+CREATE VIEW Admin_Medicine AS
+SELECT * FROM Medicine;
+CREATE VIEW Doctor_Medicine AS
+SELECT * FROM Medicine WHERE UserRole = 'Doctor';
+
+CREATE VIEW Pharmacist_Medicine AS
+SELECT * FROM Medicine WHERE UserRole = 'Pharmacist';
+-- Creating logins and users
+CREATE LOGIN Admin WITH PASSWORD = 'Admin@123';
+CREATE LOGIN Doctor WITH PASSWORD = 'Doctor@123';
+CREATE LOGIN Pharmacist WITH PASSWORD = 'Pharmacist@123';
+
+CREATE USER Admin FOR LOGIN Admin;
+CREATE USER Doctor FOR LOGIN Doctor;
+CREATE USER Pharmacist FOR LOGIN Pharmacist;
+GRANT SELECT ON Admin_Medicine TO Admin;
+GRANT SELECT ON Doctor_Medicine TO Doctor;
+GRANT SELECT ON Pharmacist_Medicine TO Pharmacist;
+-- Testing access control
+EXECUTE AS USER = 'Doctor';
+SELECT * FROM Doctor_Medicine;
+REVERT;
+--Hands-on Project 6-2: Row-Level Security in PHARMACY1 Database
+-- Creating a Security Policy for row-level filtering
+CREATE FUNCTION dbo.MedicineSecurityPredicate(@UserRole AS sysname)
+RETURNS TABLE
+WITH SCHEMABINDING
+AS
+RETURN SELECT 1 AS AccessRight WHERE @UserRole = USER_NAME() OR USER_NAME() = 'Admin';
+--CREATE SECURITY POLICY
+CREATE SECURITY POLICY MedicineSecurityPolicy
+ADD FILTER PREDICATE dbo.MedicineSecurityPredicate(UserRole)
+ON dbo.Medicine;
+-- Testing Security Policy
+EXECUTE AS USER = 'Pharmacist';
+SELECT * FROM Medicine;
+REVERT;
+-- Hands-on Project 6-3: Column-Level Security for Physician Table
+CREATE TABLE Physician (
+    PhysicianID INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Specialty VARCHAR(100),
+    Salary DECIMAL(10,2),
+    UserRole VARCHAR(50)
+);
+INSERT INTO Physician VALUES (1, 'Dr. Smith', 'Cardiology', 150000, 'Admin');
+INSERT INTO Physician VALUES (2, 'Dr. Jane', 'Neurology', 140000, 'Doctor');
+INSERT INTO Physician VALUES (3, 'Dr. Watson', 'General', 130000, 'Staff');
+-- Creating views to restrict salary visibility
+CREATE VIEW Admin_Physician AS
+SELECT * FROM Physician;
+CREATE VIEW Doctor_Physician AS
+SELECT PhysicianID, Name, Specialty FROM Physician WHERE UserRole = 'Doctor';
+CREATE VIEW Staff_Physician AS
+SELECT PhysicianID, Name FROM Physician WHERE UserRole = 'Staff';
+--GRANT PERMISSION
+GRANT SELECT ON Admin_Physician TO Admin;
+GRANT SELECT ON Doctor_Physician TO Doctor;
+-- Testing column-level security
+EXECUTE AS USER = 'Doctor';
+SELECT * FROM Doctor_Physician;
+REVERT;
+
 
