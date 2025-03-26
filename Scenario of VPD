@@ -1,0 +1,57 @@
+--scenario 1
+CREATE TABLE employee (
+  2      emp_id NUMBER PRIMARY KEY,
+  3      emp_name VARCHAR2(100),
+  4      department VARCHAR2(50),
+  5      salary NUMBER,
+  6      owner VARCHAR2(50) -- Stores the username of the owner
+  7  );
+
+Table created.
+
+SQL> -- Step 2: Insert Sample Data
+SQL> INSERT INTO employee VALUES (1, 'Sonali', 'ISSE', 50000, 'SONALI');
+
+1 row created.
+
+SQL> INSERT INTO employee VALUES (2, 'Daisy', 'CS', 55000, 'DAISY');
+
+1 row created.
+
+SQL> INSERT INTO employee VALUES (3, 'Bob', 'IT', 60000, 'BOB');
+
+1 row created.
+
+SQL> COMMIT;
+
+Commit complete.
+
+SQL> -- Step 3: Create a Policy Function
+SQL> CREATE OR REPLACE FUNCTION row_owner_security (schema_name IN VARCHAR2, table_name IN VARCHAR2)
+  2  RETURN VARCHAR2
+  3  AS
+  4      v_predicate VARCHAR2(1000);
+  5  BEGIN
+  6      v_predicate := 'owner = SYS_CONTEXT(''USERENV'', ''CURRENT_USER'')';
+  7      RETURN v_predicate;
+  8  END;
+  9  /
+
+Function created.
+
+SQL>
+SQL> -- Step 4: Apply the VPD Policy
+SQL> BEGIN
+  2      DBMS_RLS.ADD_POLICY (
+  3          object_schema   => SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA'),
+  4          object_name     => 'EMPLOYEE',
+  5          policy_name     => 'EMPLOYEE_ROW_OWNER_POLICY',
+  6          function_schema => SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA'),
+  7          policy_function => 'ROW_OWNER_SECURITY',
+  8          statement_types => 'SELECT, UPDATE, DELETE',
+  9          update_check    => TRUE
+ 10      );
+ 11  END;
+ 12  /
+
+PL/SQL procedure successfully completed.
