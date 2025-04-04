@@ -272,31 +272,7 @@ SQL> CREATE OR REPLACE PACKAGE BODY Pkg_App_Audit IS
 
 Warning: Package Body created with compilation errors.
 
-SQL> CREATE OR REPLACE TRIGGER TRG_TableName_BUDIR
-  2  BEFORE UPDATE OR DELETE OR INSERT ON TableName
-  3  FOR EACH ROW
-  4  DECLARE
-  5      V_OPERATION VARCHAR2(20);
-  6  BEGIN
-  7      IF INSERTING THEN
-  8          V_OPERATION := 'INSERT';
-  9      ELSIF UPDATING THEN
- 10          V_OPERATION := 'UPDATE';
- 11      ELSE
- 12          V_OPERATION := 'DELETE';
- 13      END IF;
- 14
- 15      PKG_APP_AUDIT.INSERT_DATA('TableName', V_OPERATION);
- 16  END;
- 17  /
-BEFORE UPDATE OR DELETE OR INSERT ON TableName
-                                     *
-ERROR at line 2:
-ORA-00942: table or view does not exist
 
-
-SQL> ed
-Wrote file afiedt.buf
 
   1  CREATE OR REPLACE TRIGGER TRG_APP_TBL1_BUDIR
   2  BEFORE UPDATE OR DELETE OR INSERT ON APP_TBL1
