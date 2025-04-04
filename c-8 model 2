@@ -311,3 +311,54 @@ VALUES (
 -- Commit the changes
 COMMIT;
 --GOT ERROR WHILE INSERTION
+--solution
+--Instead of trying to fetch data from DUAL using bind variables directly concatenate values into a string, or modify the logic to 
+--assign values to a variable and then use that
+DROP TRIGGER TRG_EMPLOYEES_BUDR;
+CREATE OR REPLACE TRIGGER TRG_EMPLOYEES_BUDR 
+BEFORE UPDATE OR DELETE ON EMPLOYEES 
+FOR EACH ROW 
+DECLARE 
+    V_TMP CLOB; 
+    V_FLAG BOOLEAN; 
+BEGIN 
+    -- Check if auditing is enabled
+    V_FLAG := PKG_APP_AUDIT.AUDIT_CHECK('EMPLOYEES'); 
+
+    IF V_FLAG THEN 
+        -- Manually build the column value string from :OLD values
+        V_TMP := :OLD.EMPLOYEE_ID || '-' || :OLD.FIRST_NAME || '-' || :OLD.LAST_NAME || '-' ||
+                 :OLD.JOB_ID || '-' || :OLD.MANAGER_ID || '-' || 
+                 TO_CHAR(:OLD.HIRE_DATE, 'YYYY-MM-DD HH24:MI:SS') || '-' ||
+                 :OLD.SALARY || '-' || :OLD.DEPARTMENT_ID;
+
+        -- Parse values based on audit metadata
+        V_TMP := PKG_APP_AUDIT.PARSE_VALUES(V_TMP); 
+
+        -- Insert audit data
+        PKG_APP_AUDIT.INSERT_DATA('EMPLOYEES', V_TMP); 
+    END IF; 
+END;
+/
+
+--testing
+UPDATE EMPLOYEES
+SET SALARY = 1000
+WHERE EMPLOYEE_ID = 8377;
+--got error for deleting 
+--so checked the update history
+SELECT T.TABLE_NAME, D.AUDIT_DATA, 
+       TO_CHAR(D.CTL_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') DATE_CREATED,
+       D.CTL_UPD_USER USERNAME
+FROM APP_AUDIT_TABLE T, APP_AUDIT_DATA D
+WHERE T.TABLE_ID = D.TABLE_ID;
+--OUTPUT::
+TABLE_NAME
+------------------------------
+AUDIT_DATA
+--------------------------------------------------------------------------------
+DATE_CREATED         USERNAME
+-------------------- ------------------------------
+EMPLOYEES
+
+04-APR-2025 08:07:36 XYZ
