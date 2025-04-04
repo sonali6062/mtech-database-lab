@@ -1,0 +1,423 @@
+SQL> connect audit_user/audit123
+Connected.
+SQL> CREATE TABLE CUSTOMERS
+  2  (
+  3      CUSTOMER_ID    NUMBER(8) NOT NULL,
+  4      CUSTOMER_SSN    VARCHAR2(9),
+  5      FIRST_NAME    VARCHAR2(20),
+  6      LAST_NAME    VARCHAR2(20),
+  7      SALES_REP_ID    NUMBER(4),
+  8      ADDR_LINE    VARCHAR2(80),
+  9      CITY    VARCHAR2(30),
+ 10      STATE    VARCHAR2(30),
+ 11      ZIP_CODE    VARCHAR2(9),
+ 12      CTL_INS_DTTM    DATE,
+ 13      CTL_UPD_DTTM    DATE,
+ 14      CTL_UPD_USER    VARCHAR2(30),
+ 15      CTL_REC_STAT    VARCHAR2(1)
+ 16  );
+
+Table created.
+
+SQL> ALTER TABLE CUSTOMERS ADD PRIMARY KEY (CUSTOMER_ID);
+
+Table altered.
+
+SQL> CREATE TABLE CUSTOMERS_HISTORY
+  2  (
+  3      CUSTOMER_ID    NUMBER(8) NOT NULL,
+  4      CUSTOMER_SSN    VARCHAR2(9),
+  5      FIRST_NAME    VARCHAR2(20),
+  6      LAST_NAME    VARCHAR2(20),
+  7      SALES_REP_ID    NUMBER(4),
+  8      ADDR_LINE    VARCHAR2(80),
+  9      CITY    VARCHAR2(30),
+ 10      STATE    VARCHAR2(30),
+ 11      ZIP_CODE    VARCHAR2(9),
+ 12      CTL_INS_DTTM    DATE,
+ 13      CTL_UPD_DTTM    DATE,
+ 14      CTL_UPD_USER    VARCHAR2(30),
+ 15      CTL_REC_STAT    VARCHAR2(1),
+ 16      HST_INS_DTTM    DATE,
+ 17      HST_OPR_TYPE    VARCHAR2(20)
+ 18  );
+
+Table created.
+
+SQL> CREATE OR REPLACE TRIGGER TRG_CUSTOMERS_BIUR
+  2  BEFORE UPDATE OR INSERT OR DELETE ON CUSTOMERS
+  3  FOR EACH ROW
+  4  DECLARE
+  5      V_CUSTOMER_ID CUSTOMERS_HISTORY.CUSTOMER_ID%TYPE;
+  6      V_CUSTOMER_SSN CUSTOMERS_HISTORY.CUSTOMER_SSN%TYPE;
+  7      V_FIRST_NAME CUSTOMERS_HISTORY.FIRST_NAME%TYPE;
+  8      V_LAST_NAME CUSTOMERS_HISTORY.LAST_NAME%TYPE;
+  9      V_SALES_REP_ID CUSTOMERS_HISTORY.SALES_REP_ID%TYPE;
+ 10      V_ADDR_LINE CUSTOMERS_HISTORY.ADDR_LINE%TYPE;
+ 11      V_CITY CUSTOMERS_HISTORY.CITY%TYPE;
+ 12      V_STATE CUSTOMERS_HISTORY.STATE%TYPE;
+ 13      V_ZIP_CODE CUSTOMERS_HISTORY.ZIP_CODE%TYPE;
+ 14      V_CTL_INS_DTTM CUSTOMERS_HISTORY.CTL_INS_DTTM%TYPE;
+ 15      V_CTL_UPD_DTTM CUSTOMERS_HISTORY.CTL_UPD_DTTM%TYPE;
+ 16      V_CTL_UPD_USER CUSTOMERS_HISTORY.CTL_UPD_USER%TYPE;
+ 17      V_CTL_REC_STAT CUSTOMERS_HISTORY.CTL_REC_STAT%TYPE;
+ 18      V_HST_OPR_TYPE CUSTOMERS_HISTORY.HST_OPR_TYPE%TYPE;
+ 19  BEGIN
+ 20      IF INSERTING THEN
+ 21          :NEW.CTL_INS_DTTM := SYSDATE;
+ 22          :NEW.CTL_UPD_DTTM := NULL;
+ 23          :NEW.CTL_REC_STAT := 'N';
+ 24          V_HST_OPR_TYPE := 'INSERT';
+ 25      ELSIF UPDATING THEN
+ 26          :NEW.CTL_UPD_DTTM := SYSDATE;
+ 27          V_CTL_UPD_DTTM := :NEW.CTL_UPD_DTTM;
+ 28          V_HST_OPR_TYPE := 'UPDATE';
+ 29      ELSIF DELETING THEN
+ 30          V_CUSTOMER_ID := :OLD.CUSTOMER_ID;
+ 31          V_CUSTOMER_SSN := :OLD.CUSTOMER_SSN;
+ 32          V_FIRST_NAME := :OLD.FIRST_NAME;
+ 33          V_LAST_NAME := :OLD.LAST_NAME;
+ 34          V_SALES_REP_ID := :OLD.SALES_REP_ID;
+ 35          V_ADDR_LINE := :OLD.ADDR_LINE;
+ 36          V_CITY := :OLD.CITY;
+ 37          V_STATE := :OLD.STATE;
+ 38          V_ZIP_CODE := :OLD.ZIP_CODE;
+ 39          V_CTL_INS_DTTM := :OLD.CTL_INS_DTTM;
+ 40          V_CTL_UPD_DTTM := :OLD.CTL_UPD_DTTM;
+ 41          V_CTL_UPD_USER := :OLD.CTL_UPD_USER;
+ 42          V_CTL_REC_STAT := :OLD.CTL_REC_STAT;
+ 43          V_HST_OPR_TYPE := 'DELETE';
+ 44      END IF;
+ 45
+ 46      IF INSERTING OR UPDATING THEN
+ 47          :NEW.CTL_UPD_USER := USER;
+ 48          V_CUSTOMER_ID := :NEW.CUSTOMER_ID;
+ 49          V_CUSTOMER_SSN := :NEW.CUSTOMER_SSN;
+ 50          V_FIRST_NAME := :NEW.FIRST_NAME;
+ 51          V_LAST_NAME := :NEW.LAST_NAME;
+ 52          V_SALES_REP_ID := :NEW.SALES_REP_ID;
+ 53          V_ADDR_LINE := :NEW.ADDR_LINE;
+ 54          V_CITY := :NEW.CITY;
+ 55          V_STATE := :NEW.STATE;
+ 56          V_ZIP_CODE := :NEW.ZIP_CODE;
+ 57          V_CTL_INS_DTTM := :NEW.CTL_INS_DTTM;
+ 58          V_CTL_UPD_DTTM := :NEW.CTL_UPD_DTTM;
+ 59          V_CTL_UPD_USER := :NEW.CTL_UPD_USER;
+ 60          V_CTL_REC_STAT := :NEW.CTL_REC_STAT;
+ 61      END IF;
+ 62  INSERT INTO CUSTOMERS_HISTORY
+ 63      (
+ 64          CUSTOMER_ID,
+ 65          CUSTOMER_SSN,
+ 66          FIRST_NAME,
+ 67          LAST_NAME,
+ 68          SALES_REP_ID,
+ 69          ADDR_LINE,
+ 70          CITY,
+ 71          STATE,
+ 72          ZIP_CODE,
+ 73          CTL_INS_DTTM,
+ 74          CTL_UPD_DTTM,
+ 75          CTL_UPD_USER,
+ 76          CTL_REC_STAT,
+ 77          HST_INS_DTTM,
+ 78          HST_OPR_TYPE
+ 79      )
+ 80      VALUES
+ 81      (
+ 82          V_CUSTOMER_ID,
+ 83          V_CUSTOMER_SSN,
+ 84          V_FIRST_NAME,
+ 85          V_LAST_NAME,
+ 86          V_SALES_REP_ID,
+ 87          V_ADDR_LINE,
+ 88          V_CITY,
+ 89          V_STATE,
+ 90          V_ZIP_CODE,
+ 91          V_CTL_INS_DTTM,
+ 92          V_CTL_UPD_DTTM,
+ 93          V_CTL_UPD_USER,
+ 94          V_CTL_REC_STAT,
+ 95          SYSDATE,
+ 96          V_HST_OPR_TYPE
+ 97      );
+ 98
+ 99  EXCEPTION WHEN OTHERS THEN
+100          RAISE_APPLICATION_ERROR(-20000,SQLERRM);
+101  END;
+102  /
+
+Trigger created.
+
+SQL> -- Insert first customer
+SQL> INSERT INTO CUSTOMERS (CUSTOMER_ID, CUSTOMER_SSN, FIRST_NAME, LAST_NAME, SALES_REP_ID,
+  2      ADDR_LINE, CITY, STATE, ZIP_CODE)
+  3  VALUES (201340,'969996970','Jeffrey','Antoine',6459,'9938 Moreno St.',
+  4      'Champagne','SD','43172');
+
+1 row created.
+
+SQL>
+SQL> INSERT INTO CUSTOMERS (CUSTOMER_ID, CUSTOMER_SSN, FIRST_NAME, LAST_NAME, SALES_REP_ID,
+  2      ADDR_LINE, CITY, STATE, ZIP_CODE)
+  3  VALUES (801349,'716647546','Cordell','Ayres',2200,'37 Noyes Street',
+  4      'Harod','NC','15199');
+
+1 row created.
+
+SQL> COMMIT;
+
+Commit complete.
+
+SQL> -- Check CUSTOMERS table
+SQL> SELECT CUSTOMER_ID CUS_ID, FIRST_NAME, LAST_NAME,
+  2      TO_CHAR(CTL_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') CTL_INS_DTTM,
+  3      CTL_UPD_DTTM, CTL_UPD_USER, CTL_REC_STAT
+  4  FROM CUSTOMERS;
+
+    CUS_ID FIRST_NAME           LAST_NAME            CTL_INS_DTTM
+---------- -------------------- -------------------- --------------------
+CTL_UPD_D CTL_UPD_USER                   C
+--------- ------------------------------ -
+    201340 Jeffrey              Antoine              04-APR-2025 10:39:10
+          AUDIT_USER                     N
+
+    801349 Cordell              Ayres                04-APR-2025 10:39:22
+          AUDIT_USER                     N
+
+
+SQL>
+SQL> -- Check CUSTOMERS_HISTORY table
+SQL> SELECT CUSTOMER_ID CUS_ID, FIRST_NAME, LAST_NAME,
+  2      TO_CHAR(CTL_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') CTL_INS_DTTM,
+  3      CTL_UPD_DTTM, CTL_UPD_USER USER,
+  4      TO_CHAR(HST_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') HST_INS_DTTM,
+  5      HST_OPR_TYPE OPER
+  6  FROM CUSTOMERS_HISTORY;
+    CTL_UPD_DTTM, CTL_UPD_USER USER,
+                               *
+ERROR at line 3:
+ORA-00923: FROM keyword not found where expected
+
+
+SQL> SELECT CUSTOMER_ID CUS_ID, FIRST_NAME, LAST_NAME,
+  2      TO_CHAR(CTL_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') CTL_INS_DTTM,
+  3      CTL_UPD_DTTM, CTL_UPD_USER "USER",
+  4      TO_CHAR(HST_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') HST_INS_DTTM,
+  5      HST_OPR_TYPE OPER
+  6  FROM CUSTOMERS_HISTORY;
+
+    CUS_ID FIRST_NAME           LAST_NAME            CTL_INS_DTTM
+---------- -------------------- -------------------- --------------------
+CTL_UPD_D USER                           HST_INS_DTTM
+--------- ------------------------------ --------------------
+OPER
+--------------------
+    201340 Jeffrey              Antoine              04-APR-2025 10:39:10
+          AUDIT_USER                     04-APR-2025 10:39:10
+INSERT
+
+    801349 Cordell              Ayres                04-APR-2025 10:39:22
+          AUDIT_USER                     04-APR-2025 10:39:22
+INSERT
+
+    CUS_ID FIRST_NAME           LAST_NAME            CTL_INS_DTTM
+---------- -------------------- -------------------- --------------------
+CTL_UPD_D USER                           HST_INS_DTTM
+--------- ------------------------------ --------------------
+OPER
+--------------------
+
+
+SQL> -- Update customer address
+SQL> UPDATE CUSTOMERS SET
+  2      ADDR_LINE = '123 Hello street'
+  3  WHERE CUSTOMER_ID = 201340;
+
+1 row updated.
+
+SQL>
+SQL> COMMIT;
+
+Commit complete.
+
+SQL> SET LINESIZE 200
+SQL> SET PAGESIZE 50
+SQL>
+SQL> COLUMN CUSTOMER_ID FORMAT 99999999
+SQL> COLUMN CUSTOMER_SSN FORMAT A12
+SQL> COLUMN FIRST_NAME FORMAT A20
+SQL> COLUMN LAST_NAME FORMAT A20
+SQL> COLUMN SALES_REP_ID FORMAT 9999
+SQL> COLUMN ADDR_LINE FORMAT A80
+SQL> COLUMN CITY FORMAT A30
+SQL> COLUMN STATE FORMAT A30
+SQL> COLUMN ZIP_CODE FORMAT A9
+SQL> COLUMN CTL_INS_DTTM FORMAT A20
+SQL> COLUMN CTL_UPD_DTTM FORMAT A20
+SQL> COLUMN CTL_UPD_USER FORMAT A30
+SQL> COLUMN CTL_REC_STAT FORMAT A1
+SQL> COLUMN HST_INS_DTTM FORMAT A20
+SQL> COLUMN HST_OPR_TYPE FORMAT A20
+SQL> SELECT CUSTOMER_ID CUS_ID, FIRST_NAME, LAST_NAME,
+  2      TO_CHAR(CTL_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') CTL_INS_DTTM,
+  3      CTL_UPD_DTTM, CTL_UPD_USER "USER",
+  4      TO_CHAR(HST_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') HST_INS_DTTM,
+  5      HST_OPR_TYPE OPER
+  6  FROM CUSTOMERS_HISTORY;
+
+    CUS_ID FIRST_NAME           LAST_NAME            CTL_INS_DTTM         CTL_UPD_DTTM         USER                           HST_INS_DTTM         OPER
+---------- -------------------- -------------------- -------------------- -------------------- ------------------------------ -------------------- --------------------
+    201340 Jeffrey              Antoine              04-APR-2025 10:39:10                      AUDIT_USER                     04-APR-2025 10:39:10 INSERT
+    801349 Cordell              Ayres                04-APR-2025 10:39:22                      AUDIT_USER                     04-APR-2025 10:39:22 INSERT
+    201340 Jeffrey              Antoine              04-APR-2025 10:39:10 04-APR-25            AUDIT_USER                     04-APR-2025 10:41:20 UPDATE
+
+SQL> -- Update customer address
+SQL> UPDATE CUSTOMERS SET
+  2      ADDR_LINE = '123 Hello street'
+  3  WHERE CUSTOMER_ID = 201340;
+
+1 row updated.
+
+SQL>
+SQL> COMMIT;
+
+Commit complete.
+
+SQL> SELECT CUSTOMER_ID CUS_ID, ADDR_LINE,
+  2      TO_CHAR(CTL_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') CTL_INS_DTTM,
+  3      TO_CHAR(CTL_UPD_DTTM, 'DD-MON-YYYY HH24:MI:SS') CTL_UPD_DTTM,
+  4      CTL_UPD_USER, CTL_REC_STAT
+  5  FROM CUSTOMERS
+  6  WHERE CUSTOMER_ID = 201340;
+
+    CUS_ID ADDR_LINE                                                                        CTL_INS_DTTM         CTL_UPD_DTTM         CTL_UPD_USER              C
+---------- -------------------------------------------------------------------------------- -------------------- -------------------- ------------------------------ -
+    201340 123 Hello street                                                                 04-APR-2025 10:39:10 04-APR-2025 10:43:54 AUDIT_USER                N
+
+SQL> -- Check history for the update
+SQL> SELECT CUSTOMER_ID CUS_ID, ADDR_LINE,
+  2      TO_CHAR(CTL_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') CTL_INS_DTTM,
+  3      TO_CHAR(CTL_UPD_DTTM, 'DD-MON-YYYY HH24:MI:SS') CTL_UPD_DTTM,
+  4      TO_CHAR(HST_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') HST_INS_DTTM,
+  5      CTL_UPD_USER USERNAME, HST_OPR_TYPE OPER
+  6  FROM CUSTOMERS_HISTORY
+  7  WHERE CUSTOMER_ID = 201340
+  8  ORDER BY HST_INS_DTTM;
+
+    CUS_ID ADDR_LINE                                                                        CTL_INS_DTTM         CTL_UPD_DTTM         HST_INS_DTTM         USERNAME
+---------- -------------------------------------------------------------------------------- -------------------- -------------------- -------------------- ------------------------------
+OPER
+--------------------
+    201340 9938 Moreno St.                                                                  04-APR-2025 10:39:10                      04-APR-2025 10:39:10 AUDIT_USER
+INSERT
+
+    201340 123 Hello street                                                                 04-APR-2025 10:39:10 04-APR-2025 10:41:20 04-APR-2025 10:41:20 AUDIT_USER
+UPDATE
+
+    201340 123 Hello street                                                                 04-APR-2025 10:39:10 04-APR-2025 10:43:54 04-APR-2025 10:43:54 AUDIT_USER
+UPDATE
+
+
+SQL> -- Delete a customer
+SQL> DELETE FROM CUSTOMERS WHERE CUSTOMER_ID = 201340;
+
+1 row deleted.
+
+SQL> -- Verify deletion
+SQL> SELECT * FROM CUSTOMERS
+  2  WHERE CUSTOMER_ID = 201340;
+
+no rows selected
+
+SQL>
+SQL> -- Check history for the deletion
+SQL> SELECT CUSTOMER_ID, ADDR_LINE,
+  2      TO_CHAR(CTL_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') CTL_INS_DTTM,
+  3      TO_CHAR(CTL_UPD_DTTM, 'DD-MON-YYYY HH24:MI:SS') CTL_UPD_DTTM,
+  4      CTL_UPD_USER USERNAME,
+  5      TO_CHAR(HST_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') HST_INS_DTTM,
+  6      HST_OPR_TYPE
+  7  FROM CUSTOMERS_HISTORY
+  8  WHERE CUSTOMER_ID = 201340
+  9  ORDER BY HST_INS_DTTM;
+
+CUSTOMER_ID ADDR_LINE                                                                        CTL_INS_DTTM         CTL_UPD_DTTM         USERNAME                  HST_INS_DTTM
+----------- -------------------------------------------------------------------------------- -------------------- -------------------- ------------------------------ --------------------
+HST_OPR_TYPE
+--------------------
+     201340 9938 Moreno St.                                                                  04-APR-2025 10:39:10                      AUDIT_USER                04-APR-2025 10:39:10
+INSERT
+
+     201340 123 Hello street                                                                 04-APR-2025 10:39:10 04-APR-2025 10:41:20 AUDIT_USER                04-APR-2025 10:41:20
+UPDATE
+
+     201340 123 Hello street                                                                 04-APR-2025 10:39:10 04-APR-2025 10:43:54 AUDIT_USER                04-APR-2025 10:43:54
+UPDATE
+
+     201340 123 Hello street                                                                 04-APR-2025 10:39:10 04-APR-2025 10:43:54 AUDIT_USER                04-APR-2025 10:44:41
+DELETE
+
+
+SQL> -- Insert more customers
+SQL> INSERT INTO CUSTOMERS (CUSTOMER_ID, CUSTOMER_SSN, FIRST_NAME, LAST_NAME, SALES_REP_ID,
+  2      ADDR_LINE, CITY, STATE, ZIP_CODE)
+  3  VALUES (301240,'123456789','Sarah','Johnson',3456,'100 Main St',
+  4      'Springfield','IL','62704');
+
+1 row created.
+
+SQL>
+SQL> INSERT INTO CUSTOMERS (CUSTOMER_ID, CUSTOMER_SSN, FIRST_NAME, LAST_NAME, SALES_REP_ID,
+  2      ADDR_LINE, CITY, STATE, ZIP_CODE)
+  3  VALUES (401341,'987654321','Michael','Williams',7890,'200 Oak Ave',
+  4      'Madison','WI','53703');
+
+1 row created.
+
+SQL>
+SQL> COMMIT;
+
+Commit complete.
+
+SQL> -- Perform various operations
+SQL> UPDATE CUSTOMERS SET SALES_REP_ID = 5555 WHERE CUSTOMER_ID = 801349;
+
+1 row updated.
+
+SQL>
+SQL> UPDATE CUSTOMERS SET CITY = 'New City', STATE = 'NY' WHERE CUSTOMER_ID = 301240;
+
+1 row updated.
+
+SQL>
+SQL> DELETE FROM CUSTOMERS WHERE CUSTOMER_ID = 401341;
+
+1 row deleted.
+
+SQL>
+SQL> COMMIT;
+
+Commit complete.
+
+SQL> SELECT CUSTOMER_ID, FIRST_NAME, LAST_NAME,
+  2         HST_OPR_TYPE,
+  3         TO_CHAR(HST_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') AS AUDIT_TIMESTAMP,
+  4         CTL_UPD_USER AS CHANGED_BY
+  5  FROM CUSTOMERS_HISTORY
+  6  ORDER BY HST_INS_DTTM;
+
+CUSTOMER_ID FIRST_NAME           LAST_NAME            HST_OPR_TYPE         AUDIT_TIMESTAMP      CHANGED_BY
+----------- -------------------- -------------------- -------------------- -------------------- ------------------------------
+     201340 Jeffrey              Antoine              INSERT               04-APR-2025 10:39:10 AUDIT_USER
+     801349 Cordell              Ayres                INSERT               04-APR-2025 10:39:22 AUDIT_USER
+     201340 Jeffrey              Antoine              UPDATE               04-APR-2025 10:41:20 AUDIT_USER
+     201340 Jeffrey              Antoine              UPDATE               04-APR-2025 10:43:54 AUDIT_USER
+     201340 Jeffrey              Antoine              DELETE               04-APR-2025 10:44:41 AUDIT_USER
+     301240 Sarah                Johnson              INSERT               04-APR-2025 10:46:22 AUDIT_USER
+     401341 Michael              Williams             INSERT               04-APR-2025 10:46:36 AUDIT_USER
+     801349 Cordell              Ayres                UPDATE               04-APR-2025 10:46:49 AUDIT_USER
+     301240 Sarah                Johnson              UPDATE               04-APR-2025 10:46:49 AUDIT_USER
+     401341 Michael              Williams             DELETE               04-APR-2025 10:46:49 AUDIT_USER
+
+10 rows selected.
