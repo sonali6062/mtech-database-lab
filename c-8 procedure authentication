@@ -1,0 +1,108 @@
+SQL> -- Step 1: Create the user CHRISNEW with password 'tiger'
+SQL> CREATE USER CHRISNEW IDENTIFIED BY tiger;
+
+User created.
+
+SQL> GRANT CREATE SESSION TO CHRISNEW;
+
+Grant succeeded.
+
+SQL>
+SQL> -- Step 2: Create the table CUSTOMERS123 in CHRISNEW's schema
+SQL> -- (Assuming you're logged in as CHRISNEW or use: ALTER SESSION SET CURRENT_SCHEMA = CHRISNEW;)
+SQL> CREATE TABLE CUSTOMERS123 (
+  2    ID           NUMBER,
+  3    NAME         VARCHAR2(20),
+  4    CREDIT_LIMIT NUMBER(10,2)
+  5  );
+
+Table created.
+
+SQL>
+SQL> -- Step 3: Insert a row into CUSTOMERS123
+SQL> INSERT INTO CUSTOMERS123 (ID, NAME, CREDIT_LIMIT)
+  2  VALUES (1, 'Joe Zoomer', 1000);
+
+1 row created.
+
+SQL> COMMIT;
+
+Commit complete.
+
+SQL>
+SQL> -- Step 4: Create a stored procedure to display data from CUSTOMERS123
+SQL> CREATE OR REPLACE PROCEDURE DISPLAY_CUSTOMERS AUTHID DEFINER IS
+  2  BEGIN
+  3    FOR C IN (SELECT * FROM CUSTOMERS123) LOOP
+  4      DBMS_OUTPUT.PUT_LINE('ID: ' || C.ID || ', NAME: ' || C.NAME ||
+  5                           ', CREDIT_LIMIT: ' || C.CREDIT_LIMIT);
+  6    END LOOP;
+  7  END;
+  8
+  9  -- Step 5: Grant execute privilege on the procedure to CHRISR
+ 10  GRANT EXECUTE ON DISPLAY_CUSTOMERS TO CHRISR;
+ 11  /
+
+Warning: Procedure created with compilation errors.
+
+SQL> CREATE OR REPLACE PROCEDURE DISPLAY_CUSTOMERS AUTHID DEFINER IS
+  2  BEGIN
+  3    FOR C IN (SELECT * FROM CUSTOMERS123) LOOP
+  4      DBMS_OUTPUT.PUT_LINE('ID: ' || C.ID || ', NAME: ' || C.NAME ||
+  5                           ', CREDIT_LIMIT: ' || C.CREDIT_LIMIT);
+  6    END LOOP;
+  7  END;
+  8  /
+
+Procedure created.
+
+SQL> GRANT EXECUTE ON DISPLAY_CUSTOMERS TO CHRISR;
+GRANT EXECUTE ON DISPLAY_CUSTOMERS TO CHRISR
+                                      *
+ERROR at line 1:
+ORA-01917: user or role 'CHRISR' does not exist
+
+
+SQL> GRANT EXECUTE ON DISPLAY_CUSTOMERS TO CHRISNEW;
+
+Grant succeeded.
+
+SQL> select * from CUSTOMERS123;
+
+        ID NAME                 CREDIT_LIMIT
+---------- -------------------- ------------
+         1 Joe Zoomer                   1000
+
+SQL> conn  CHRISNEW/tiger;
+Connected.
+SQL> select * from CUSTOMERS123;
+select * from CUSTOMERS123
+              *
+ERROR at line 1:
+ORA-00942: table or view does not exist
+--this error occured because w haven't assigned much privilege to the user
+
+SQL> SET SERVEROUTPUT ON SIZE 1000000
+SQL> /
+select * from CUSTOMERS123
+              *
+ERROR at line 1:
+ORA-00942: table or view does not exist
+
+
+SQL> EXEC DBSEC.DISPLAY_CUSTOMERS;
+BEGIN DBSEC.DISPLAY_CUSTOMERS; END;
+
+      *
+ERROR at line 1:
+ORA-06550: line 1, column 7:
+PLS-00201: identifier 'DBSEC.DISPLAY_CUSTOMERS' must be declared
+ORA-06550: line 1, column 7:
+PL/SQL: Statement ignored
+
+--we've login through system so in place of DBSEC we've to do it through system
+
+SQL> EXEC system.DISPLAY_CUSTOMERS;
+ID: 1, NAME: Joe Zoomer, CREDIT_LIMIT: 1000
+
+PL/SQL procedure successfully completed.
