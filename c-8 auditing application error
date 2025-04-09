@@ -1,0 +1,194 @@
+
+SQL> CREATE TABLE CUSTOMERS (
+  2      ID NUMBER,
+  3      NAME VARCHAR2(10),
+  4      CREDIT_LIMIT NUMBER
+  5  );
+
+Table created.
+
+SQL> INSERT INTO CUSTOMERS (ID, NAME, CREDIT_LIMIT)
+  2  VALUES (1, 'Tom Jones', 1000);
+
+1 row created.
+
+SQL>
+SQL> COMMIT;
+
+Commit complete.
+
+SQL> CREATE TABLE APP_AUDIT_ERRORS (
+  2      TABLE_NAME     VARCHAR2(30) NOT NULL,
+  3      ERROR_CODE     NUMBER NOT NULL,
+  4      ERROR_MSG      VARCHAR2(2000) NOT NULL,
+  5      ROW_VALUES     VARCHAR2(4000) NOT NULL,
+  6      CTL_INS_DTTM   DATE,
+  7      CTL_INS_USER   VARCHAR2(30),
+  8      CTL_OPS_USER   VARCHAR2(30),
+  9      CTL_IP_ADDR    VARCHAR2(255)
+ 10  );
+
+Table created.
+
+SQL> CREATE OR REPLACE PACKAGE APP_AUDIT_DML IS
+  2      PROCEDURE CUSTOMERS_UPDATE(
+  3          P_ID NUMBER,
+  4          P_NAME VARCHAR2,
+  5          P_CREDIT_LIMIT NUMBER,
+  6          P_COMMIT BOOLEAN DEFAULT TRUE
+  7      );
+  8  END;
+  9  /
+
+Package created.
+
+SQL> CREATE OR REPLACE PACKAGE BODY APP_AUDIT_DML IS
+  2
+  3      PROCEDURE INSERT_ERROR(
+  4          P_TABLE VARCHAR2,
+  5          P_CODE NUMBER,
+  6          P_MSG VARCHAR2,
+  7          P_VALS VARCHAR2
+  8      ) IS
+  9          PRAGMA AUTONOMOUS_TRANSACTION;
+ 10      BEGIN
+ 11          INSERT INTO APP_AUDIT_ERRORS (
+ 12              TABLE_NAME, ERROR_CODE, ERROR_MSG, ROW_VALUES,
+ 13              CTL_INS_DTTM, CTL_INS_USER, CTL_OPS_USER, CTL_IP_ADDR
+ 14          ) VALUES (
+ 15              P_TABLE, P_CODE, P_MSG, P_VALS,
+ 16              SYSDATE, USER,
+ 17              SYS_CONTEXT('USERENV', 'OS_USER'),
+ 18              SYS_CONTEXT('USERENV', 'IP_ADDRESS')
+ 19          );
+ 20          COMMIT;
+ 21      END INSERT_ERROR;
+ 22
+ 23      PROCEDURE CUSTOMERS_UPDATE(
+ 24          P_ID NUMBER,
+ 25          P_NAME VARCHAR2,
+ 26          P_CREDIT_LIMIT NUMBER,
+ 27          P_COMMIT BOOLEAN DEFAULT TRUE
+ 28      ) IS
+ 29          V_STMT VARCHAR2(4000);
+ 30          E_ID_NULL EXCEPTION;
+ 31          PRAGMA EXCEPTION_INIT(E_ID_NULL, -20001);
+ 32      BEGIN
+ 33          IF P_ID IS NULL THEN
+ 34              RAISE E_ID_NULL;
+ 35          END IF;
+ 36
+ 37          UPDATE CUSTOMERS
+ 38          SET
+ 39              ID = NVL(P_ID, ID),
+ 40              NAME = NVL(P_NAME, NAME),
+ 41              CREDIT_LIMIT = NVL(P_CREDIT_LIMIT, CREDIT_LIMIT)
+ 42          WHERE ID = P_ID;
+ 43
+ 44          IF P_COMMIT THEN
+ 45              COMMIT;
+ 46          END IF;
+ 47
+ 48      EXCEPTION
+ 49          WHEN E_ID_NULL THEN
+ 50              V_STMT := 'ID=' || TO_CHAR(P_ID) || ', NAME=' || P_NAME || ', CREDIT_LIMIT=' || TO_CHAR(P_CREDIT_LIMIT);
+ 51              INSERT_ERROR('CUSTOMERS', SQLCODE, SQLERRM, V_STMT);
+ 52              RAISE_APPLICATION_ERROR(-20001, 'Error: ' || SQLERRM);
+ 53          WHEN OTHERS THEN
+ 54              V_STMT := 'ID=' || TO_CHAR(P_ID) || ', NAME=' || P_NAME || ', CREDIT_LIMIT=' || TO_CHAR(P_CREDIT_LIMIT);
+ 55              INSERT_ERROR('CUSTOMERS', SQLCODE, SQLERRM, V_STMT);
+ 56              RAISE_APPLICATION_ERROR(-20002, 'Error: ' || SQLERRM);
+ 57      END CUSTOMERS_UPDATE;
+ 58
+ 59  END APP_AUDIT_DML;
+ 60  /
+
+Package body created.
+
+SQL> EXEC APP_AUDIT_DML.CUSTOMERS_UPDATE(1, NULL, 10000);
+
+PL/SQL procedure successfully completed.
+
+SQL> EXEC APP_AUDIT_DML.CUSTOMERS_UPDATE(1, NULL, 10000);
+
+PL/SQL procedure successfully completed.
+
+SQL> EXEC APP_AUDIT_DML.CUSTOMERS_UPDATE(1, 'Tom Jones Jr.', NULL);
+BEGIN APP_AUDIT_DML.CUSTOMERS_UPDATE(1, 'Tom Jones Jr.', NULL); END;
+
+*
+ERROR at line 1:
+ORA-20002: Error: ORA-12899: value too large for column
+"QW1"."CUSTOMERS"."NAME" (actual: 13, maximum: 10)
+ORA-06512: at "QW1.APP_AUDIT_DML", line 56
+ORA-06512: at line 1
+
+
+SQL> SET LINESIZE 200
+SQL> SET PAGESIZE 50
+SQL>
+SQL> COLUMN CUSTOMER_ID FORMAT 99999999
+SQL> COLUMN CUSTOMER_SSN FORMAT A12
+SQL> COLUMN FIRST_NAME FORMAT A20
+SQL> COLUMN LAST_NAME FORMAT A20
+SQL> COLUMN SALES_REP_ID FORMAT 9999
+SQL> COLUMN ADDR_LINE FORMAT A80
+SQL> COLUMN CITY FORMAT A30
+SQL> COLUMN STATE FORMAT A30
+SQL> COLUMN ZIP_CODE FORMAT A9
+SQL> COLUMN CTL_INS_DTTM FORMAT A20
+SQL> COLUMN CTL_UPD_DTTM FORMAT A20
+SQL> COLUMN CTL_UPD_USER FORMAT A30
+SQL> COLUMN CTL_REC_STAT FORMAT A1
+SQL> COLUMN HST_INS_DTTM FORMAT A20
+SQL> COLUMN HST_OPR_TYPE FORMAT A20
+SQL> SELECT TABLE_NAME,
+  2         ERROR_MSG,
+  3         ROW_VALUES,
+  4         TO_CHAR(CTL_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') AS DATE_CREATED,
+  5         CTL_IP_ADDR
+  6  FROM APP_AUDIT_ERRORS;
+
+TABLE_NAME
+------------------------------
+ERROR_MSG
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ROW_VALUES
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+DATE_CREATED
+--------------------
+CTL_IP_ADDR
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CUSTOMERS
+ORA-12899: value too large for column "QW1"."CUSTOMERS"."NAME" (actual: 13, maximum: 10)
+ID=1, NAME=Tom Jones Jr., CREDIT_LIMIT=
+09-APR-2025 14:56:51
+
+
+
+SQL> SET LINESIZE 200
+SQL> SET PAGESIZE 100
+SQL> SET WRAP OFF
+SQL> COLUMN TABLE_NAME        FORMAT A15 HEADING "TABLE"
+SQL>  COLUMN ERROR_MSG         FORMAT A50 HEADING "ERROR MESSAGE"
+SQL> COLUMN ROW_VALUES        FORMAT A50 HEADING "ROW VALUES"
+SQL> COLUMN DATE_CREATED      FORMAT A20 HEADING "DATE CREATED"
+SQL> COLUMN CTL_IP_ADDR       FORMAT A15 HEADING "IP ADDRESS"
+SQL> SELECT TABLE_NAME,
+  2         ERROR_MSG,
+  3         ROW_VALUES,
+  4         TO_CHAR(CTL_INS_DTTM, 'DD-MON-YYYY HH24:MI:SS') AS DATE_CREATED,
+  5         CTL_IP_ADDR
+  6  FROM APP_AUDIT_ERRORS;
+
+TABLE           ERROR MESSAGE                                      ROW VALUES                                             DATE CREATED         IP ADDRESS
+--------------- -------------------------------------------------- -------------------------------------------------- -------------------- ---------------
+CUSTOMERS       ORA-12899: value too large for column "QW1"."CUSTO ID=1, NAME=Tom Jones Jr., CREDIT_LIMIT=        09-APR-2025 14:56:51
+
+SQL>
+
+
+
+
+
+
