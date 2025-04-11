@@ -1,0 +1,218 @@
+
+Enter user-name: system
+Enter password:
+
+Connected to:
+Oracle Database 11g Enterprise Edition Release 11.2.0.1.0 - 64bit Production
+With the Partitioning, OLAP, Data Mining and Real Application Testing options
+
+SQL> CREATE TABLE APP_AUDIT_LOGINS
+  2  (
+  3      LOGINS_ID      NUMBER,
+  4      SESSION_ID     NUMBER,
+  5      USERNAME       VARCHAR2(30),
+  6      LOGON_TIME     DATE,
+  7      LOGOFF_TIME    DATE,
+  8      IP_ADDRESS     VARCHAR2(255),
+  9      AUD_INS_DTTM   DATE,
+ 10      AUD_UPD_DTTM   DATE
+ 11  );
+
+Table created.
+
+SQL> CREATE SEQUENCE SEQ_LOGIN_ID;
+CREATE SEQUENCE SEQ_LOGIN_ID
+                *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object
+
+
+SQL> DROP SEQUENCE SEQ_LOGIN_ID;
+
+Sequence dropped.
+
+SQL> CREATE SEQUENCE SEQ_LOGIN_ID;
+
+Sequence created.
+
+SQL> CREATE OR REPLACE TRIGGER TRG_AFTER_LOGON
+  2  AFTER LOGON ON DATABASE
+  3  BEGIN
+  4    INSERT INTO APP_AUDIT_LOGINS VALUES
+  5    (
+  6      SEQ_LOGIN_ID.NEXTVAL,
+  7      SYS_CONTEXT('USERENV', 'SESSIONID'),
+  8      USER,
+  9      SYSDATE,
+ 10      NULL,
+ 11      SYS_CONTEXT('USERENV', 'IP_ADDRESS'),
+ 12      SYSDATE,
+ 13      NULL
+ 14    );
+ 15  END;
+ 16  /
+
+Trigger created.
+
+SQL> CREATE OR REPLACE TRIGGER TRG_BEFORE_LOGOFF
+  2  BEFORE LOGOFF ON DATABASE
+  3  BEGIN
+  4    UPDATE APP_AUDIT_LOGINS SET
+  5      LOGOFF_TIME   = SYSDATE,
+  6      AUD_UPD_DTTM  = SYSDATE
+  7    WHERE SESSION_ID  = SYS_CONTEXT('USERENV', 'SESSIONID')
+  8      AND USERNAME    = USER
+  9      AND LOGOFF_TIME IS NULL;
+ 10  END;
+ 11  /
+
+Trigger created.
+
+SQL> conn qw12/tiger;
+Connected.
+SQL> disconnect
+Disconnected from Oracle Database 11g Enterprise Edition Release 11.2.0.1.0 - 64bit Production
+With the Partitioning, OLAP, Data Mining and Real Application Testing options
+SQL> select * from APP_AUDIT_LOGINS;
+SP2-0640: Not connected
+SQL> conn system/tiger;
+Connected.
+SQL> select * from APP_AUDIT_LOGINS;
+
+ LOGINS_ID SESSION_ID USERNAME                       LOGON_TIM LOGOFF_TI
+---------- ---------- ------------------------------ --------- ---------
+IP_ADDRESS
+--------------------------------------------------------------------------------
+AUD_INS_D AUD_UPD_D
+--------- ---------
+         1     320423 SYS                            11-APR-25 11-APR-25
+
+11-APR-25 11-APR-25
+
+         2          0 SYS                            11-APR-25
+
+11-APR-25
+
+ LOGINS_ID SESSION_ID USERNAME                       LOGON_TIM LOGOFF_TI
+---------- ---------- ------------------------------ --------- ---------
+IP_ADDRESS
+--------------------------------------------------------------------------------
+AUD_INS_D AUD_UPD_D
+--------- ---------
+
+         3     320429 QW12                           11-APR-25 11-APR-25
+
+11-APR-25 11-APR-25
+
+         4          0 SYS                            11-APR-25
+
+
+ LOGINS_ID SESSION_ID USERNAME                       LOGON_TIM LOGOFF_TI
+---------- ---------- ------------------------------ --------- ---------
+IP_ADDRESS
+--------------------------------------------------------------------------------
+AUD_INS_D AUD_UPD_D
+--------- ---------
+11-APR-25
+
+         5          0 SYS                            11-APR-25
+
+11-APR-25
+
+         6          0 SYS                            11-APR-25
+
+ LOGINS_ID SESSION_ID USERNAME                       LOGON_TIM LOGOFF_TI
+---------- ---------- ------------------------------ --------- ---------
+IP_ADDRESS
+--------------------------------------------------------------------------------
+AUD_INS_D AUD_UPD_D
+--------- ---------
+
+11-APR-25
+
+         7          0 SYS                            11-APR-25
+
+11-APR-25
+
+
+ LOGINS_ID SESSION_ID USERNAME                       LOGON_TIM LOGOFF_TI
+---------- ---------- ------------------------------ --------- ---------
+IP_ADDRESS
+--------------------------------------------------------------------------------
+AUD_INS_D AUD_UPD_D
+--------- ---------
+         8     320472 SYSTEM                         11-APR-25
+
+11-APR-25
+
+
+8 rows selected.
+
+SQL> SET LINESIZE 200
+SQL> SET PAGESIZE 50
+SQL>
+SQL> COLUMN CUSTOMER_ID FORMAT 99999999
+SQL> COLUMN CUSTOMER_SSN FORMAT A12
+SQL> COLUMN FIRST_NAME FORMAT A20
+SQL> COLUMN LAST_NAME FORMAT A20
+SQL> COLUMN SALES_REP_ID FORMAT 9999
+SQL> COLUMN ADDR_LINE FORMAT A80
+SQL> COLUMN CITY FORMAT A30
+SQL> COLUMN STATE FORMAT A30
+SQL> COLUMN ZIP_CODE FORMAT A9
+SQL> COLUMN CTL_INS_DTTM FORMAT A20
+SQL> COLUMN CTL_UPD_DTTM FORMAT A20
+SQL> COLUMN CTL_UPD_USER FORMAT A30
+SQL> COLUMN CTL_REC_STAT FORMAT A1
+SQL> COLUMN HST_INS_DTTM FORMAT A20
+SQL> COLUMN HST_OPR_TYPE FORMAT A20
+SQL> select * from APP_AUDIT_LOGINS;
+
+ LOGINS_ID SESSION_ID USERNAME                       LOGON_TIM LOGOFF_TI
+---------- ---------- ------------------------------ --------- ---------
+IP_ADDRESS
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+AUD_INS_D AUD_UPD_D
+--------- ---------
+         1     320423 SYS                            11-APR-25 11-APR-25
+
+11-APR-25 11-APR-25
+
+         2          0 SYS                            11-APR-25
+
+11-APR-25
+
+         3     320429 QW12                           11-APR-25 11-APR-25
+
+11-APR-25 11-APR-25
+
+         4          0 SYS                            11-APR-25
+
+11-APR-25
+
+         5          0 SYS                            11-APR-25
+
+11-APR-25
+
+         6          0 SYS                            11-APR-25
+
+11-APR-25
+
+         7          0 SYS                            11-APR-25
+
+11-APR-25
+
+         8     320472 SYSTEM                         11-APR-25
+
+11-APR-25
+
+         9          0 SYS                            11-APR-25
+
+11-APR-25
+
+        10          0 SYS                            11-APR-25
+
+11-APR-25
+
+
+10 rows selected.
