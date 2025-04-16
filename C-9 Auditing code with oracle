@@ -1,0 +1,129 @@
+--tracks all the statements issued against a table and to store all auditing records in a auditing table
+
+SQL> CREATE TABLE APP_AUDIT_SQLS(
+  2  TABLE_NAME VARCHAR2(30) NOT NULL,
+  3  SQL_STATEMENT VARCHAR2(4000) NOT NULL,
+  4  SQL_TYPE VARCHAR2(10) NOT NULL,
+  5  CTL_INS_DTTM DATE,
+  6  CTL_INS_USER VARCHAR2(30),
+  7  CTL_OPS_USER VARCHAR2(30),
+  8  CTL_IP_ADDR VARCHAR2(255)
+  9  );
+
+Table created.
+
+SQL> CREATE TABLE CUSTOMERS
+  2  (
+  3      ID           NUMBER,
+  4      NAME         VARCHAR2(10),
+  5      CREDIT_LIMIT NUMBER
+  6  );
+
+Table created.
+
+SQL>
+SQL> -- Inserting first record
+SQL> INSERT INTO CUSTOMERS (ID, NAME, CREDIT_LIMIT)
+  2  VALUES (1, 'Tom Jones', 2);
+
+1 row created.
+
+SQL>
+SQL> -- Inserting second record
+SQL> INSERT INTO CUSTOMERS (ID, NAME, CREDIT_LIMIT)
+  2  VALUES (10, 'BLA AFENDI', 500);
+
+1 row created.
+
+--login through sysdba
+SQL> GRANT SELECT ON V_$SQL TO DBSEC;
+Grant succeeded.
+
+SQL> GRANT SELECT ON V_$SESSION TO DBSEC;
+Grant succeeded..
+conn DBSEC/tiger;
+
+SQL> CREATE OR REPLACE TRIGGER TRG_CUSTOMER_BDUR
+  2  BEFORE UPDATE OR INSERT OR DELETE
+  3  ON CUSTOMERS
+  4  FOR EACH ROW
+  5  DECLARE
+  6    V_STMT VARCHAR2(4000);
+  7    V_OPER VARCHAR2(10);
+  8  BEGIN
+  9    -- Determine the operation type
+ 10    IF INSERTING THEN
+ 11      V_OPER := 'INSERT';
+ 12    ELSIF UPDATING THEN
+ 13      V_OPER := 'UPDATE';
+ 14    ELSE
+ 15      V_OPER := 'DELETE';
+ 16    END IF;
+ 17
+ 18    -- Get the current SQL statement (best-effort)
+ 19    BEGIN
+ 20      SELECT Q.SQL_TEXT
+ 21      INTO V_STMT
+ 22      FROM V$SQL Q, V$SESSION S
+ 23      WHERE S.AUDSID = SYS_CONTEXT('USERENV', 'SESSIONID')
+ 24        AND Q.PARSING_USER_ID = SYS_CONTEXT('USERENV', 'CURRENT_USERID')
+ 25        AND Q.LAST_LOAD_TIME = (
+ 26          SELECT MAX(LAST_LOAD_TIME)
+ 27          FROM V$SQL
+ 28          WHERE PARSING_USER_ID = Q.PARSING_USER_ID
+ 29            AND UPPER(SQL_TEXT) LIKE '%' || V_OPER || '%'
+ 30            AND UPPER(SQL_TEXT) NOT LIKE 'SELECT%' || '%'
+ 31        )
+ 32        AND UPPER(SQL_TEXT) LIKE '%' || V_OPER || '%';
+ 33    EXCEPTION
+ 34      WHEN OTHERS THEN
+ 35        V_STMT := 'Unable to capture SQL text';
+ 36    END;
+ 37
+ 38    -- Insert audit record
+ 39    INSERT INTO APP_AUDIT_SQLS (
+ 40      TABLE_NAME, SQL_STATEMENT, SQL_TYPE,
+ 41      CTL_INS_USER, CTL_OPS_USER, CTL_IP_ADDR
+ 42    ) VALUES (
+ 43      'CUSTOMERS', V_STMT, V_OPER,
+ 44      USER,
+ 45      SYS_CONTEXT('USERENV', 'OS_USER'),
+ 46      SYS_CONTEXT('USERENV', 'IP_ADDRESS')
+ 47    );
+ 48  END;
+ 49  /
+
+Trigger created.
+
+SQL> UPDATE CUSTOMERS SET
+  2    CREDIT_LIMIT = 1000
+  3  WHERE ID = 3;
+
+0 rows updated.
+
+SQL> SELECT * FROM CUSTOMERS;
+
+        ID NAME       CREDIT_LIMIT
+---------- ---------- ------------
+         1 Tom Jones             2
+        10 BLA AFENDI          500
+
+SQL> UPDATE CUSTOMERS SET
+  2  CREDIT_LIMIT=1000
+  3  WHERE ID=10;
+
+1 row updated.
+
+SQL> COMMIT;
+
+Commit complete.
+
+SQL> SELECT TABLE_NAME, SQL_STATEMENT
+  2  FROM APP_AUDIT_SQLS;
+
+TABLE_NAME
+------------------------------
+SQL_STATEMENT
+--------------------------------------------------------------------------------
+CUSTOMERS
+UPDATE CUSTOMERS SET CREDIT_LIMIT=1000 WHERE ID=10
