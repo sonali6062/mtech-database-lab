@@ -21,3 +21,5 @@ Grant succeeded.
 SQL> GRANT CREATE VIEW TO audit_user;
 
 Grant succeeded.
+ctrl+C -to stop execution in oracle
+
