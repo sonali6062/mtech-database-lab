@@ -1,0 +1,91 @@
+--4,5
+SQL> DELETE SYS.AUD$
+  2  /
+
+211436 rows deleted.
+
+SQL> COMMIT;
+
+Commit complete.
+
+SQL> CONN DBSEC/tiger;
+Connected.
+SQL> GRANT SELECT ON TEMP TO system;
+
+Grant succeeded.
+
+SQL> GRANT UPDATE ON TEMP TO system;
+
+Grant succeeded.
+
+SQL> conn system/tiger;
+Connected.
+SQL> SELECT USERNAME,TIMESTAMP,OWNER,OBJ_NAME
+  2  FROM DBA_AUDIT_TRAIL
+  3  /
+
+USERNAME             TIMESTAMP            OWNER                OBJ_NAME
+-------------------- -------------------- -------------------- ----------------------------------------
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSTEM               17-APR-25
+DBSEC                17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSTEM               17-APR-25            SYS                  AUD$
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+DBSEC                17-APR-25
+SYSTEM               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+SYSMAN               17-APR-25
+
+44 rows selected.
+
+SQL> AUDIT ALL BY DBSEC
+  2  /
+
+Audit succeeded.
+
+SQL> DELETE SYS.AUD$
+  2  /
+
+96 rows deleted.
+
+SQL> CONN DBSEC/tiger;
+Connected.
+SQL> CREATE TABLE TEMP2(NUM NUMBER)
+  2  /
+
+Table created.
